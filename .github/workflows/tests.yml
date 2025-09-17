@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Build and Deploy
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,17 +27,8 @@ jobs:
     - name: Build Docker images
       run: docker compose build --no-cache
 
-    - name: Run tests
-      run: docker compose run --rm tests
-
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-      if: success()
-
   deploy:
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 

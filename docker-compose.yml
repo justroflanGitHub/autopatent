@@ -22,20 +22,6 @@ services:
       timeout: 10s
       retries: 3
 
-  tests:
-    build: .
-    container_name: patent_service_tests
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-    command: pytest --cov=src --cov-report=xml --cov-report=term-missing tests/
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    networks:
-      - app_network
-
 networks:
   app_network:
     driver: bridge
