@@ -55,7 +55,7 @@ jobs:
 
     - name: Build and push Docker images
       run: |
-        docker-compose build
+        docker compose build
         docker tag zodiak-patent-search-main-web:latest ${{ secrets.DOCKERHUB_USERNAME }}/zodiak-patent-search:latest
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/zodiak-patent-search:latest
 
