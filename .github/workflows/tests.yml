@@ -1,4 +1,4 @@
-name: Run Tests
+name: CI/CD Pipeline
 
 on:
   push:
@@ -9,9 +9,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
     - name: Create env file
       run: |
@@ -21,16 +24,44 @@ jobs:
         echo "GIGACHAT_CLIENT_SECRET=${{ secrets.GIGACHAT_CLIENT_SECRET }}" >> .env
         echo "LOG_LEVEL=DEBUG" >> .env
 
-    - name: Install Docker Compose
-      run: |
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-        docker-compose version
+    - name: Build Docker images
+      run: docker-compose build --no-cache
 
-    - name: Build and run tests
-      run: docker-compose run tests
+    - name: Run tests
+      run: docker-compose run --rm tests
 
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} 
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+      if: success()
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Docker images
+      run: |
+        docker-compose build
+        docker tag zodiak-patent-search-main-web:latest ${{ secrets.DOCKERHUB_USERNAME }}/zodiak-patent-search:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/zodiak-patent-search:latest
+
+    - name: Deploy to server (optional)
+      if: env.DEPLOY_HOST
+      run: |
+        echo "Deploying to server..."
+        # Add your deployment commands here
+        # Example: ssh, docker pull, docker-compose up, etc.
