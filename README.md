@@ -39,7 +39,8 @@ cd autopatent
 # Создаем виртуальное окружение
 python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
-# или venv\Scripts\activate  # Windows
+# или
+venv\Scripts\activate  # Windows
 
 # Устанавливаем зависимости
 pip install -r requirements.txt
