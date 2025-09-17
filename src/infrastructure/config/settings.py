@@ -88,5 +88,15 @@ class Settings:
         )
 
 
-# Создаем глобальный экземпляр настроек
-settings = Settings.from_env()
+# Глобальный экземпляр настроек (будет инициализирован при первом обращении)
+_settings = None
+
+def get_settings() -> Settings:
+    """Получить глобальный экземпляр настроек (ленивая инициализация)"""
+    global _settings
+    if _settings is None:
+        _settings = Settings.from_env()
+    return _settings
+
+# Для обратной совместимости
+settings = property(get_settings)

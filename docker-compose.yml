@@ -1,33 +1,35 @@
 version: '3.8'
 
 services:
-  bot:
+  web:
     build: .
-    container_name: telegram_bot
+    container_name: patent_web_service
     restart: always
     env_file:
       - .env
     volumes:
-      - .:/app 
+      - .:/app
+    ports:
+      - "8000:8000"
     dns:
       - 8.8.8.8
       - 8.8.4.4
     networks:
       - app_network
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.head('https://searchplatform.rospatent.gov.ru/patsearch/v0.2')"]
-      interval: 1m
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
       timeout: 10s
       retries: 3
 
   tests:
     build: .
-    container_name: telegram_bot_tests
+    container_name: patent_service_tests
     env_file:
       - .env
     volumes:
-      - .:/app 
-    command: pytest --cov=src --cov-report=xml --cov-report=term-missing tests/ 
+      - .:/app
+    command: pytest --cov=src --cov-report=xml --cov-report=term-missing tests/
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -36,4 +38,4 @@ services:
 
 networks:
   app_network:
-    driver: bridge 
+    driver: bridge

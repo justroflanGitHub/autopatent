@@ -14,5 +14,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копировать весь код
 COPY . .
 
-# Запустить бота
-CMD ["python", "src/bot/main.py"] 
+# Запустить веб-сервис (не бота)
+CMD ["python", "-m", "src.interfaces.web.main"]

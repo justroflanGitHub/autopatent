@@ -49,9 +49,11 @@ pip install -r requirements.txt
 ### 🐳 С Docker
 
 ```bash
-# Запуск с Docker Compose
+# Запуск веб-сервиса с Docker Compose
 docker-compose up --build
 ```
+
+Сервис будет доступен на `http://localhost:8000`
 
 ## ⚙️ Настройка
 
