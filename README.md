@@ -53,7 +53,7 @@ pip install -r requirements.txt
 docker-compose up --build
 ```
 
-Сервис будет доступен на `http://localhost:8000`
+Сервис будет доступен на `http://localhost:8000/static/index.html`
 
 ## ⚙️ Настройка
 
