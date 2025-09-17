@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: telegram_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - .:/app 
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.head('https://searchplatform.rospatent.gov.ru/patsearch/v0.2')"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+
+  tests:
+    build: .
+    container_name: telegram_bot_tests
+    env_file:
+      - .env
+    volumes:
+      - .:/app 
+    command: pytest --cov=src --cov-report=xml --cov-report=term-missing tests/ 
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge 

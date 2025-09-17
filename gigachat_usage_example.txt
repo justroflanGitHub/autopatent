@@ -1,0 +1,114 @@
+!pip install requests
+
+# **Токен**
+
+import requests
+
+url = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+
+payload={
+  'scope': 'GIGACHAT_API_PERS'
+}
+headers = {
+  'Content-Type': 'application/x-www-form-urlencoded',
+  'Accept': 'application/json',
+  'RqUID': 'd935c4a8-04f5-4a10-815e-aa657f9f1836',
+  'Authorization': 'Basic OTEzZTlmNTMtODFkNS00MjgyLWIwMDItOTI5NmE4OTQ0NjIzOmJhNTU3OWU0LTdmNDAtNGEzZC1iNTZjLWE3YTMzMmJiMjVlZg=='
+}
+
+auth_response = requests.request("POST", url, headers=headers, data=payload, verify=False)
+
+print(auth_response.text)
+
+if auth_response.status_code == 200:
+    # Преобразуем ответ в словарь
+    token_data = auth_response.json()  # Ответ уже в JSON-формате
+    access_token = token_data.get("access_token")  # Извлекаем значение токена
+    expires_at = token_data.get("expires_at")      # Извлекаем время истечения (при необходимости)
+    print("Токен доступа:", access_token)
+else:
+    print("Ошибка получения токена:", auth_response.status_code, auth_response.text)
+    exit()
+
+# **Запрос**
+
+import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+url = "https://gigachat.devices.sberbank.ru/api/v1/models"
+
+payload={
+    "client_id": "913e9f53-81d5-4282-b002-9296a8944623",
+    "scope": "GIGACHAT_API_PERS"
+    }
+
+headers = {
+  'Accept': 'application/json',
+  'Authorization': f'Bearer {access_token}'
+}
+
+response = requests.request("GET", url, headers=headers, data=payload,  verify=False)
+
+print(response.text)
+
+import requests
+import json
+
+# Ваш предыдущий запрос (предположим, response содержит JSON-ответ)
+response_data = response.json()  # Преобразуем ответ в словарь
+
+# Вывод списка доступных моделей
+if "data" in response_data:
+    print("Доступные модели:")
+    for model in response_data["data"]:
+        print(f"- ID: {model['id']}, Type: {model['type']}")
+else:
+    print("Модели не найдены.")
+
+
+import requests
+import json
+
+# URL для общения с моделью (уточните в документации API)
+chat_url = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+
+# Заголовки запроса
+headers = {
+    'Accept': 'application/json',
+    'Authorization': f'Bearer {access_token}',
+    'Content-Type': 'application/json'
+}
+
+# Здесь можно передавать на какую тему пользователь ищет запрос
+tender_theme = ""
+
+# В этой переменной хорошо бы передавать текст тендера, который взяли с сайта
+tender_text = ""
+
+# Тело запроса
+# Там где стоит троиточее надо написать, что еще мы хотим вывести отдельно, кроме года начала и года окончания
+payload = {
+    "model": "GigaChat",  # Выбираем модель
+    "messages": [
+        {"role": "system", "content": "You are an assistant in tender search."},
+        {"role": "user", "content": "Дан текст тендера на тему " + tender_theme + "сам текст:" + tender_text + " суммирй все сказанное в тексте и выведи краткую выжимку"}
+    ],
+    "max_tokens": 250,      # Максимальное количество токенов в ответе
+    "temperature": 0.3      # Уровень креативности
+}
+
+# Отправляем запрос
+response = requests.post(chat_url, headers=headers, json=payload, verify=False)
+
+# Проверяем ответ
+if response.status_code == 200:
+    response_data = response.json()  # Преобразуем JSON-ответ в словарь
+    print("Ответ модели:", response_data.get("choices")[0]["message"]["content"])
+else:
+    print("Ошибка:", response.status_code, response.text)
+
+
+print(response_data.get("choices")[0]["message"]["content"])
+# Вывод: "Привет! У меня всё отлично. Чем могу помочь?"

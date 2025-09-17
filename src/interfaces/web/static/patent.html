@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детали патента - Patent Search</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <i class="fas fa-robot"></i>
+            </div>
+            <h2>AI обрабатывает патент...</h2>
+            <p>Пожалуйста, подождите. GigaChat анализирует данные патента и обогащает их дополнительной информацией.</p>
+            <div class="loading-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Подготовка данных...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="patent-detail-page" style="display: none;">
+        <!-- Header -->
+        <header class="patent-header">
+            <div class="container">
+                <div class="header-content">
+                    <button class="back-button" onclick="goBack()">
+                        <i class="fas fa-arrow-left"></i>
+                        Назад к поиску
+                    </button>
+                    <h1 id="patentTitle">Загрузка...</h1>
+                </div>
+            </div>
+        </header>
+
+        <!-- Patent Content -->
+        <main class="container">
+            <!-- Enrichment Status -->
+            <div id="enrichmentStatus" class="enrichment-banner" style="display: none;">
+                <div class="enrichment-content">
+                    <i class="fas fa-robot"></i>
+                    <div class="enrichment-text">
+                        <strong>AI-обогащение выполнено!</strong>
+                        <span id="enrichmentFields"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Patent Details -->
+            <div class="patent-content">
+                <!-- Basic Information -->
+                <section class="patent-section">
+                    <h2><i class="fas fa-info-circle"></i> Основная информация</h2>
+                    <div class="patent-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">ID патента</div>
+                            <div class="detail-value" id="patentId">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Дата публикации</div>
+                            <div class="detail-value" id="publicationDate">Не указана</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Дата подачи</div>
+                            <div class="detail-value" id="applicationDate">Не указана</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Авторы</div>
+                            <div class="detail-value" id="authors">Не указаны</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Правообладатели</div>
+                            <div class="detail-value" id="patentHolders">Не указаны</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">IPC коды</div>
+                            <div class="detail-value" id="ipcCodes">Не указаны</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Abstract -->
+                <section class="patent-section">
+                    <h2><i class="fas fa-file-alt"></i> Реферат</h2>
+                    <div class="patent-text" id="abstract">Загрузка...</div>
+                </section>
+
+                <!-- Claims -->
+                <div id="claimsSection" class="patent-section" style="display: none;">
+                    <h2><i class="fas fa-gavel"></i> Формула изобретения</h2>
+                    <div class="patent-text" id="claims"></div>
+                </div>
+
+                <!-- Description -->
+                <div id="descriptionSection" class="patent-section" style="display: none;">
+                    <h2><i class="fas fa-book"></i> Описание</h2>
+                    <div class="patent-text" id="description"></div>
+                </div>
+
+                <!-- AI Analysis -->
+                <div id="analysisSection" class="patent-section" style="display: none;">
+                    <h2><i class="fas fa-brain"></i> AI-анализ патента</h2>
+                    <div class="analysis-content" id="analysis"></div>
+                </div>
+
+                <!-- Innovations Analysis -->
+                <div id="innovationsSection" class="patent-section" style="display: none;">
+                    <h2><i class="fas fa-lightbulb"></i> AI-анализ инноваций</h2>
+                    <div class="analysis-content" id="innovations"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Error Screen -->
+    <div id="errorScreen" class="error-screen" style="display: none;">
+        <div class="error-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h2>Ошибка загрузки патента</h2>
+            <p id="errorMessage">Произошла неизвестная ошибка при загрузке данных патента.</p>
+            <button class="retry-button" onclick="retryLoad()">
+                <i class="fas fa-redo"></i>
+                Попробовать снова
+            </button>
+            <button class="back-button" onclick="goBack()">
+                <i class="fas fa-arrow-left"></i>
+                Вернуться к поиску
+            </button>
+        </div>
+    </div>
+
+    <script>
+        class PatentDetailPage {
+            constructor() {
+                this.patentId = this.getPatentIdFromUrl();
+                this.apiBase = window.location.origin;
+                this.init();
+            }
+
+            init() {
+                if (!this.patentId) {
+                    this.showError('ID патента не указан в URL');
+                    return;
+                }
+
+                this.loadPatentDetails();
+                this.setupProgressAnimation();
+            }
+
+            getPatentIdFromUrl() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('id');
+            }
+
+            async loadPatentDetails() {
+                try {
+                    this.updateProgress('Получение данных патента...', 20);
+
+                    // Fetch patent details
+                    const patentResponse = await fetch(`${this.apiBase}/api/patents/${this.patentId}`);
+                    if (!patentResponse.ok) {
+                        throw new Error(`HTTP ${patentResponse.status}: ${patentResponse.statusText}`);
+                    }
+
+                    const patentData = await patentResponse.json();
+                    this.updateProgress('Обработка данных...', 60);
+
+                    // Try to fetch innovations data (optional)
+                    let innovationsData = null;
+                    try {
+                        const innovationsResponse = await fetch(`${this.apiBase}/api/patents/${this.patentId}/innovations`);
+                        if (innovationsResponse.ok) {
+                            innovationsData = await innovationsResponse.json();
+                        }
+                    } catch (error) {
+                        console.warn('Failed to load innovations data:', error);
+                    }
+
+                    this.updateProgress('Отображение результатов...', 90);
+
+                    // Display the patent data
+                    this.displayPatentData(patentData, innovationsData);
+
+                    // Hide loading screen and show content
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        document.getElementById('mainContent').style.display = 'block';
+                    }, 500);
+
+                } catch (error) {
+                    console.error('Error loading patent details:', error);
+                    this.showError(`Не удалось загрузить данные патента: ${error.message}`);
+                }
+            }
+
+            updateProgress(text, percentage) {
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+
+                progressFill.style.width = `${percentage}%`;
+                progressText.textContent = text;
+            }
+
+            setupProgressAnimation() {
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    if (progress < 15) {
+                        progress += Math.random() * 2;
+                        if (progress > 15) progress = 15;
+                        document.getElementById('progressFill').style.width = `${progress}%`;
+                    } else {
+                        clearInterval(progressInterval);
+                    }
+                }, 200);
+            }
+
+            displayPatentData(patentData, innovationsData) {
+                const patent = patentData.patent;
+                const enrichmentInfo = patentData.enrichment_info;
+
+                // Update title with proper handling
+                if (patent.title && patent.title.trim() !== '' && patent.title !== 'null') {
+                    document.getElementById('patentTitle').textContent = patent.title;
+                } else {
+                    document.getElementById('patentTitle').textContent = 'Название патента не указано';
+                }
+
+                // Show enrichment status if data was enriched
+                if (enrichmentInfo && enrichmentInfo.fields_enriched && enrichmentInfo.fields_enriched.length > 0) {
+                    const enrichmentBanner = document.getElementById('enrichmentStatus');
+                    const enrichmentFields = document.getElementById('enrichmentFields');
+
+                    enrichmentFields.textContent = `Обогащены поля: ${enrichmentInfo.fields_enriched.join(', ')}`;
+                    enrichmentBanner.style.display = 'block';
+                }
+
+                // Update basic information with proper null/undefined handling
+                document.getElementById('patentId').textContent = patent.id || 'Не указан';
+
+                // Handle publication date
+                if (patent.publication_date && patent.publication_date !== 'null' && patent.publication_date !== '') {
+                    document.getElementById('publicationDate').textContent = patent.publication_date;
+                } else {
+                    document.getElementById('publicationDate').textContent = 'Не указана';
+                }
+
+                // Handle application date
+                if (patent.application_date && patent.application_date !== 'null' && patent.application_date !== '') {
+                    document.getElementById('applicationDate').textContent = patent.application_date;
+                } else {
+                    document.getElementById('applicationDate').textContent = 'Не указана';
+                }
+
+                // Handle authors
+                if (patent.authors && Array.isArray(patent.authors) && patent.authors.length > 0) {
+                    // Filter out null/undefined/empty values
+                    const validAuthors = patent.authors.filter(author => author && author.trim() !== '');
+                    if (validAuthors.length > 0) {
+                        document.getElementById('authors').textContent = validAuthors.join(', ');
+                    } else {
+                        document.getElementById('authors').textContent = 'Не указаны';
+                    }
+                } else {
+                    document.getElementById('authors').textContent = 'Не указаны';
+                }
+
+                // Handle patent holders
+                if (patent.patent_holders && Array.isArray(patent.patent_holders) && patent.patent_holders.length > 0) {
+                    // Filter out null/undefined/empty values
+                    const validHolders = patent.patent_holders.filter(holder => holder && holder.trim() !== '');
+                    if (validHolders.length > 0) {
+                        document.getElementById('patentHolders').textContent = validHolders.join(', ');
+                    } else {
+                        document.getElementById('patentHolders').textContent = 'Не указаны';
+                    }
+                } else {
+                    document.getElementById('patentHolders').textContent = 'Не указаны';
+                }
+
+                // Handle IPC codes
+                if (patent.ipc_codes && Array.isArray(patent.ipc_codes) && patent.ipc_codes.length > 0) {
+                    // Filter out null/undefined/empty values
+                    const validCodes = patent.ipc_codes.filter(code => code && code.trim() !== '');
+                    if (validCodes.length > 0) {
+                        document.getElementById('ipcCodes').textContent = validCodes.join(', ');
+                    } else {
+                        document.getElementById('ipcCodes').textContent = 'Не указаны';
+                    }
+                } else {
+                    document.getElementById('ipcCodes').textContent = 'Не указаны';
+                }
+
+                // Update abstract with proper handling
+                if (patent.abstract && patent.abstract.trim() !== '' && patent.abstract !== 'null') {
+                    document.getElementById('abstract').textContent = patent.abstract;
+                } else {
+                    document.getElementById('abstract').textContent = 'Реферат отсутствует';
+                }
+
+                // Update claims if available
+                if (patent.claims && patent.claims.trim() !== '' && patent.claims !== 'null') {
+                    document.getElementById('claims').textContent = patent.claims;
+                    document.getElementById('claimsSection').style.display = 'block';
+                }
+
+                // Update description if available
+                if (patent.description && patent.description.trim() !== '' && patent.description !== 'null') {
+                    document.getElementById('description').textContent = patent.description;
+                    document.getElementById('descriptionSection').style.display = 'block';
+                }
+
+                // Update AI analysis if available
+                if (patentData.analysis && patentData.analysis.status === 'success') {
+                    const analysisContent = this.formatPatentAnalysis(patentData.analysis.summary);
+                    document.getElementById('analysis').innerHTML = analysisContent;
+                    document.getElementById('analysisSection').style.display = 'block';
+                }
+
+                // Update innovations analysis if available
+                if (innovationsData && innovationsData.analysis && !innovationsData.error) {
+                    const innovationsContent = this.formatAnalysis(innovationsData.analysis);
+                    document.getElementById('innovations').innerHTML = innovationsContent;
+                    document.getElementById('innovationsSection').style.display = 'block';
+                }
+            }
+
+            formatPatentAnalysis(analysis) {
+                let html = '';
+
+                if (analysis.description) {
+                    html += `<p><strong>Описание:</strong> ${this.escapeHtml(analysis.description)}</p>`;
+                }
+
+                if (analysis.advantages && analysis.advantages.length > 0) {
+                    html += `<p><strong>Преимущества:</strong></p><ul>`;
+                    analysis.advantages.forEach(advantage => {
+                        html += `<li>${this.escapeHtml(advantage)}</li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                if (analysis.disadvantages && analysis.disadvantages.length > 0) {
+                    html += `<p><strong>Недостатки:</strong></p><ul>`;
+                    analysis.disadvantages.forEach(disadvantage => {
+                        html += `<li>${this.escapeHtml(disadvantage)}</li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                if (analysis.applications && analysis.applications.length > 0) {
+                    html += `<p><strong>Области применения:</strong></p><ul>`;
+                    analysis.applications.forEach(application => {
+                        html += `<li>${this.escapeHtml(application)}</li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                return html || '<p>Анализ не доступен</p>';
+            }
+
+            formatAnalysis(analysis) {
+                let html = '';
+
+                if (analysis.technical_solution) {
+                    html += `<p><strong>Техническое решение:</strong> ${this.escapeHtml(analysis.technical_solution)}</p>`;
+                }
+
+                if (analysis.novelty) {
+                    html += `<p><strong>Новизна:</strong> ${this.escapeHtml(analysis.novelty)}</p>`;
+                }
+
+                if (analysis.application_field) {
+                    html += `<p><strong>Область применения:</strong> ${this.escapeHtml(analysis.application_field)}</p>`;
+                }
+
+                if (analysis.advantages && analysis.advantages.length > 0) {
+                    html += `<p><strong>Преимущества:</strong></p><ul>`;
+                    analysis.advantages.forEach(advantage => {
+                        html += `<li>${this.escapeHtml(advantage)}</li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                if (analysis.key_features && analysis.key_features.length > 0) {
+                    html += `<p><strong>Ключевые особенности:</strong></p><ul>`;
+                    analysis.key_features.forEach(feature => {
+                        html += `<li>${this.escapeHtml(feature)}</li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                return html || '<p>Анализ не доступен</p>';
+            }
+
+            showError(message) {
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('errorScreen').style.display = 'flex';
+                document.getElementById('errorMessage').textContent = message;
+            }
+
+            escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Global functions for buttons
+        function goBack() {
+            // Redirect to the main search page
+            window.location.href = '/static/index.html';
+        }
+
+        function retryLoad() {
+            window.location.reload();
+        }
+
+        // Initialize the page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.patentPage = new PatentDetailPage();
+        });
+    </script>
+
+    <style>
+        .patent-detail-page {
+            min-height: 100vh;
+            background: var(--background-color);
+        }
+
+        .patent-header {
+            background: var(--card-background);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .back-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .patent-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .patent-section {
+            background: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .patent-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .patent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .patent-text {
+            line-height: 1.6;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+        }
+
+        .analysis-content {
+            background: var(--background-color);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .analysis-content p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .analysis-content ul {
+            margin-left: 1.5rem;
+        }
+
+        .analysis-content li {
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .enrichment-banner {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+            border: 1px solid #4caf50;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .enrichment-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .enrichment-content i {
+            color: #4caf50;
+            font-size: 1.5rem;
+        }
+
+        .enrichment-text strong {
+            color: #2e7d32;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--background-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 2rem;
+        }
+
+        .loading-spinner {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        .loading-content h2 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .loading-content p {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .loading-progress {
+            background: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+        }
+
+        .progress-bar {
+            background: var(--background-color);
+            border-radius: 10px;
+            height: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-hover));
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .error-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--background-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .error-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 2rem;
+            background: var(--card-background);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .error-content i {
+            font-size: 3rem;
+            color: var(--error-color);
+            margin-bottom: 1rem;
+        }
+
+        .error-content h2 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .error-content p {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .retry-button, .back-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            margin: 0.5rem;
+            transition: background-color 0.2s;
+        }
+
+        .retry-button:hover, .back-button:hover {
+            background: var(--primary-hover);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .patent-content {
+                padding: 1rem;
+            }
+
+            .patent-section {
+                padding: 1.5rem;
+            }
+
+            .patent-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</body>
+</html>

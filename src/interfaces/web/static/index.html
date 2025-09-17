@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patent Search - Автоматизированный патентный поиск</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-search"></i> Patent Search</h1>
+                <p class="subtitle">Автоматизированный патентный поиск с AI-анализом</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Search Form -->
+            <section class="search-section">
+                <div class="search-card">
+                    <h2><i class="fas fa-search"></i> Поиск патентов</h2>
+                    <form id="searchForm" class="search-form">
+                        <div class="form-group">
+                            <label for="query">Поисковый запрос</label>
+                            <input type="text" id="query" name="query" placeholder="Введите ключевые слова..." required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="trendYears">Период анализа (лет)</label>
+                                <input type="number" id="trendYears" name="trend_years" value="5" min="1" max="20" placeholder="5">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="trendLimit">Количество патентов для анализа</label>
+                                <input type="number" id="trendLimit" name="trend_limit" value="100" min="1" max="2000" placeholder="100">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="limit">Количество результатов</label>
+                                <select id="limit" name="limit">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="author">Автор</label>
+                                <input type="text" id="author" name="author" placeholder="ФИО автора">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="dateFrom">Дата от</label>
+                                <input type="text" id="dateFrom" name="date_from" placeholder="YYYY-MM-DD">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="dateTo">Дата до</label>
+                                <input type="text" id="dateTo" name="date_to" placeholder="YYYY-MM-DD">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="countries">Страны</label>
+                            <input type="text" id="countries" name="countries" placeholder="RU, US, EU (через запятую)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ipcCodes">IPC коды</label>
+                            <input type="text" id="ipcCodes" name="ipc_codes" placeholder="G06F, H04L (через запятую)">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Найти патенты
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-list"></i> Результаты поиска</h2>
+                    <div class="results-actions">
+                        <div class="trends-controls" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                            <div class="form-group" style="margin: 0;">
+                                <label for="trendsLimit" style="font-size: 0.9rem; margin-bottom: 0.25rem;">Количество патентов для анализа трендов</label>
+                                <select id="trendsLimit" name="trendsLimit" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); background: var(--card-background); color: var(--text-primary);">
+                                    <option value="100" selected>100 патентов</option>
+                                    <option value="200">200 патентов</option>
+                                    <option value="500">500 патентов</option>
+                                    <option value="1000">1000 патентов</option>
+                                    <option value="2000">2000 патентов</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1rem;">
+                            <button id="clusterBtn" class="btn btn-secondary">
+                                <i class="fas fa-sitemap"></i> Кластеризовать
+                            </button>
+                            <button id="trendsBtn" class="btn btn-secondary">
+                                <i class="fas fa-chart-line"></i> Анализировать тренды
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="resultsContainer" class="results-container">
+                    <!-- Results will be displayed here -->
+                </div>
+
+                <!-- Chart Container -->
+                <div id="chartContainer" class="chart-container" style="display: none;">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-chart-line"></i> График трендов патентования</h3>
+                        <button id="closeChartBtn" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Закрыть
+                        </button>
+                    </div>
+                    <canvas id="trendsChart" width="400" height="200"></canvas>
+                </div>
+
+                <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Загрузка...</p>
+                </div>
+            </section>
+
+
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 Patent Search System. Автоматизированный патентный поиск с AI-анализом.</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
