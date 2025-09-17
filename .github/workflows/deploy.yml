@@ -63,7 +63,7 @@ jobs:
         port: ${{ secrets.VPS_PORT || 22 }}
         script: |
           # Stop existing containers
-          docker-compose down || true
+          docker compose down || true
 
           # Pull latest images
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/zodiak-patent-search:latest
@@ -72,7 +72,7 @@ jobs:
           sed -i 's|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/zodiak-patent-search:latest|g' docker-compose.yml
 
           # Start services
-          docker-compose up -d
+          docker compose up -d
 
           # Health check
           sleep 30
